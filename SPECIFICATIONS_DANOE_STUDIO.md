@@ -28,6 +28,8 @@
 17. [Sauvegarde & persistance (fichier de projet)](#17-sauvegarde--persistance-fichier-de-projet)
 18. [Bac à sable & importation de fichiers](#18-bac-à-sable--importation-de-fichiers)
 19. [Organisation — pagination & D&D multi-pages](#19-organisation--pagination--dd-multi-pages)
+21. [Module Correcteur linguistique (LanguageTool)](#21-module-correcteur-linguistique-languagetool)
+22. [Cinématique 3D de fermeture & effet Glow](#22-cinématique-3d-de-fermeture--effet-glow)
 
 ---
 
@@ -132,8 +134,13 @@ DanoeStudioII/
 │  ├─ src/
 │  │  ├─ main.rs                  # Point d'entrée → `danoe_studio_lib::run()`
 │  │  ├─ lib.rs                   # Commandes Tauri + `run()` + progression
-│  │  ├─ commands.rs              # `export_pdf` (AST → Typst → PDF)
+│  │  ├─ commands.rs              # `export_pdf`, `render_pdf`, `read/write_chapter_file`, `finalize_exit`
 │  │  ├─ kdp.rs                   # Spécifications KDP (source unique de vérité)
+│  │  ├─ corrector/               # Module Correcteur linguistique (LanguageTool)
+│  │  │  ├─ mod.rs                # Commandes : analyze_chapter, dictionnaires, options
+│  │  │  ├─ client.rs             # Client HTTP + découpage parallèle (< 8 Ko) + offsets
+│  │  │  ├─ dictionary.rs         # ignored_words.json + places.json (écriture atomique)
+│  │  │  └─ options.rs            # corrector_options.json (langue, picky, règles désactivées)
 │  │  └─ pdf/                     # Moteur PDF Typst (generator / compiler / mod)
 │  ├─ icons/                      # Icônes d'application (générées par `tauri icon`)
 │  └─ assets/                     # Ressources empaquetées (Couverture_Cuir_01.jpg…)
@@ -150,17 +157,27 @@ DanoeStudioII/
    │  ├─ directory.ts             # Dossier + import de fichiers (Tauri / repli navigateur)
    │  ├─ projectFile.ts           # Fichier projet .danoe (flat↔tree, save/load, v1.0)
    │  ├─ sources.ts               # Tri des sources par extension (chapitres / images)
+   │  ├─ tauri.ts                 # Pont invoke/events Tauri + replis navigateur
+   │  ├─ pdfPreview.ts            # PDF Typst en mémoire → Uint8Array (aperçu)
+   │  ├─ projectApi.ts            # readChapterFile / writeChapterFile
+   │  ├─ correctorApi.ts          # analyze_chapter, dictionnaires, options (types LtOptions)
+   │  ├─ shutdown.ts              # Caches volatils + finalize_exit + app-close-requested
    │  └─ shell.ts                 # Ouverture de fichier par l'OS (Tauri shell)
    └─ components/
-      ├─ Layout.tsx               # Structure globale (progress + registre + journal)
+      ├─ Layout.tsx               # Registre + cinématique 3D de fermeture (glow)
       ├─ LeftPage.tsx             # Onglets + page de garde
       ├─ ProgressBar.tsx          # Barre de progression rétro-industrielle
       ├─ LogPanel.tsx             # Journal des opérations (console)
+      ├─ MenuFlipBook.tsx         # Livre virtuel des onglets (react-pageflip)
+      ├─ PreviewFlipbook.tsx      # Aperçu interactif du PDF (pdf.js + canvas)
+      ├─ CorrectorView.tsx        # Onglet Correcteur (orchestration + journal de session)
+      ├─ CorrectorSidebar.tsx     # Volet latéral des suggestions
+      ├─ ChapterEditor.tsx        # Éditeur décoré in-situ (soulignements + « Localiser »)
       ├─ SettingsNavigator.tsx    # Navigation séquentielle des Réglages (niveaux 1–9)
       ├─ SettingsView.tsx         # Niveau 1 : sommaire des réglages
       ├─ InfoView.tsx             # Onglet Informations (formulaire en sections)
       ├─ OrganizationView.tsx     # Onglet Organisation (structure DnD + pagination)
-      ├─ ExportView.tsx           # Onglet Export (DOCX / PDF / EPUB)
+      ├─ ExportView.tsx           # Onglet Export (DOCX / PDF / EPUB + Aperçu)
       ├─ settings/
       │  ├─ controls.tsx          # PillButton, RadioRow, FontRadioRow, FontCard
       │  ├─ SettingsGeneralPage.tsx  # Niveau 2
@@ -169,7 +186,8 @@ DanoeStudioII/
       │  ├─ ChapterTitlePage.tsx     # Niveau 5
       │  ├─ SubtitlePage.tsx         # Niveau 6
       │  ├─ SourcesPage.tsx          # Niveau 7 (dossier unique « Mes sources »)
-      │  └─ ErrorLogPage.tsx         # Niveau 8 (journal des erreurs) — « Dossier des exports » supprimé
+      │  ├─ ErrorLogPage.tsx         # Niveau 8 (journal des erreurs)
+      │  └─ CorrectorPage.tsx        # Niveau 9 (correcteur linguistique)
 ```
 
 > Fichiers hérités/à ignorer : `src/App.css`, `src/styles/global.css` (non importés),
@@ -439,6 +457,16 @@ d'export mémorisé, aucune organisation en sous-dossiers (`ExportsPage.tsx` n'e
 - Section **« Accès rapide »** : bouton secondaire discret **« Ouvrir le fichier de bord »**
   (`FileText`, bordure grise, hover cuivre) → `openPathExternal(...)` (voir §14).
 
+### Niveau 9 — Correcteur linguistique (`CorrectorPage.tsx`)
+- Section **« Région / dialecte »** : pastilles `Français standard (fr)` · `France (fr-FR)` ·
+  `Belgique (fr-BE)` · `Canada (fr-CA)` · `Suisse (fr-CH)` → `set_corrector_options`.
+- Section **« Niveau d'exigence »** : interrupteur **« Mode Pointilleux »** (style, typographie
+  et sémantique avancée) → `level=picky`.
+- Section **« Règles désactivées »** : liste **humanisée** (jamais l'ID technique brut) +
+  bouton **« Réactiver »** (retrait de `disabled_rules`, écriture atomique).
+- **Infobulles pédagogiques** (`HelpCircle` → `InfoTooltip`) : langage clair, non technique,
+  orienté relecture littéraire (voir §21).
+
 ### Récapitulatif fil d'Ariane (Réglages)
 | Niveau | Fil d'Ariane |
 |---|---|
@@ -450,6 +478,7 @@ d'export mémorisé, aucune organisation en sous-dossiers (`ExportsPage.tsx` n'e
 | 6 | Réglages › Paramètres du livre › Sous-titres |
 | 7 | Réglages › Mes sources |
 | 8 | Réglages › Journal des erreurs |
+| 9 | Réglages › Correcteur linguistique |
 
 ---
 
@@ -1430,4 +1459,82 @@ l'absence de pop-up, les conventions §5, et la **Tolérance Zéro** (aucun éch
 
 
 
+
+
+---
+
+## 21. Module Correcteur linguistique (LanguageTool)
+
+Rendu par `CorrectorView.tsx` (onglet **Correcteur**) : éditeur décoré + volet latéral.
+
+### 21.1 Moteur d'analyse (`corrector/client.rs`)
+- **Découpage en blocs sûrs** : `MAX_CHUNK_BYTES = 8 000` octets ; coupe préférentielle
+  `\n\n` → `\n` → espace → frontière de caractère (`floor_char_boundary`) : **jamais**
+  au milieu d'un mot ni d'un caractère UTF-8.
+- **Requêtes concurrentes** : `futures::future::join_all` sur les tronçons ; chaque
+  correspondance est réindexée (`entry.offset += chunk_start`, `chunk_start` cumulé en
+  **caractères**) puis fusionnée dans l'ordre du texte.
+- **Tolérance aux pannes partielles** : un tronçon en échec (HTTP 500, timeout) est journalisé
+  (`avertissement : tronçon du correcteur ignoré (…)`) sans interrompre les autres ; un échec
+  **total** remonte en `Result::Err` (Tolérance Zéro).
+- `disabledRules` nettoyés : `trim`, jeu de caractères `[A-Za-z0-9_.-]`, chaînes vides éliminées.
+
+### 21.2 Masquage Markdown non destructif (`mask_markdown`)
+Avant l'envoi, la syntaxe est remplacée par des **espaces de même longueur en caractères**
+(offsets LanguageTool strictement préservés) :
+- frontmatter **YAML Obsidian** de tête (`--- … ---`) ;
+- appels de notes `[^label]` ;
+- code inline `` `…` `` et texte barré `~~…~~`.
+
+### 21.3 Dictionnaires persistants (`app_data_dir`)
+| Fichier | Contenu | Commandes |
+|---|---|---|
+| `ignored_words.json` | Mots ignorés (toutes règles) | `list_ignored_words`, `update_ignored_words` |
+| `places.json` | Toponymes / noms propres (règles **orthographiques** uniquement) | `list_places`, `add_place` |
+| `corrector_options.json` | `language`, `picky`, `disabled_rules` | `get_corrector_options`, `set_corrector_options` |
+
+Écriture **atomique** (`.tmp` + `rename`) ; `analyze_chapter` écarte les mots ignorés, les
+alertes orthographiques visant un toponyme connu et les règles désactivées.
+
+### 21.4 Ergonomie
+- **`rule_description`** (libellé humain) remplace l'ID technique : `title` du bouton « Règle »
+  = `Désactiver la règle : « … »` (jamais `rule_id` à l'écran).
+- **Bouton « Localiser »** : `ChapterEditorHandle::locate(index)` → `scrollTo` du textarea
+  (centrage vertical sur `mark.offsetTop`), synchronisation du calque miroir,
+  `setSelectionRange(offset, offset + length)`, surlignage rouge vif
+  (`bg-red-500/35 ring-2 ring-red-500/70`).
+- **Journal des opérations** (accordéon sous l'en-tête) : corrections de session
+  (`ancien terme` barré → terme corrigé, `HH:MM`) ; mention italique si vide.
+- **Disparition animée rétro** : la carte validée s'évanouit (`opacity-0`, `-translate-x-2`,
+  `scale-95`, repli `max-h-0`, teinte `bg-copper/10`, `transition-all 300 ms ease-out`) puis
+  est retirée après ~380 ms.
+- **Sauvegarde synchronisée** : chaque remplacement écrit le chapitre (`write_chapter_file`,
+  atomique) ; indicateur « Sauvegardé » (~2 s).
+
+---
+
+## 22. Cinématique 3D de fermeture & effet Glow
+
+### 22.1 Interception native (`lib.rs`)
+`WindowEvent::CloseRequested` → `api.prevent_close()` + émission **`app-close-requested`**
+(la fenêtre n'est jamais fermée brutalement). Le bouton « Quitter » et la croix native
+déclenchent la même cinématique (`isClosing = true`, `src/utils/shutdown.ts`).
+
+### 22.2 Animation 3D (`Layout.tsx`)
+- Perspective générale **1400 px** (`[perspective:1400px]`).
+- Volet droit : `transform-origin: left center`, `rotateY(-180deg)`,
+  transition **450 ms** `cubic-bezier(0.4, 0, 0.2, 1)`.
+- `backface-visibility: hidden` : la **face externe** (couverture cuir/cuivre + logo doré)
+  devient visible au verso.
+
+### 22.3 Effet Glow
+- **Halo d'ambiance** : calque radial `rgba(198, 134, 66, 0.4) → transparent 70 %`,
+  `blur-3xl`, opacité 0 → 1 (`duration-500`).
+- **Lueur de reliure** : bande centrale `w-[3px]` portant
+  `box-shadow: 0 0 25px 6px rgba(217, 119, 6, 0.6)`, apparition synchronisée avec la rotation.
+
+### 22.4 Destruction propre (`commands.rs`)
+`finalize_exit` (≈ 520 ms après le début de la cinématique) : `window.destroy()` — libération
+ordonnée des threads WebView2, évitant l'erreur Chromium **Win32 1412** — puis `app.exit(0)`.
+Purge du cache volatil assurée sur `RunEvent::Exit` (§14/§17).
 
