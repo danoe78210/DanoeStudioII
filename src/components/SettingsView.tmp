@@ -1,0 +1,23 @@
+import React from 'react';
+import { Settings, FolderArchive, Image, FileText, Database, ShieldAlert } from 'lucide-react';
+  const settingsItems = [
+    { label: \
+Paramètres
+généraux\, icon: Settings },
+
+export const SettingsView: React.FC = () => {
+    { label: \
+Journal
+des
+erreurs\, icon: ShieldAlert },
+    { label: \
+Dossier
+des
+images\, icon: Image },
+    { label: \
+Dossier
+traductions\, icon: Database },
+    { label: \
+Dossier
+des
+chapitres\, icon: FileText },

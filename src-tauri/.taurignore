@@ -1,0 +1,10 @@
+# Fichiers ignorés par le watcher `tauri dev` (mêmes règles qu'un `.gitignore`).
+# Chemins relatifs au dossier `src-tauri/`.
+#
+# Cibles de compilation Rust : cargo réécrit les binaires en continu ; les
+# observer sous Windows provoque des erreurs `EBUSY` (fichier verrouillé).
+target/
+#
+# Ressources binaires (images de couverture, cartes…) manipulées par
+# l'application : on évite que le watcher les verrouille/lise pendant l'écriture.
+assets/

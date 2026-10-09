@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme {
+  /* Bureau sombre et feutré */
+  --color-desk: #12161f;
+  --color-desk-light: #1b212e;
+
+  /* Papiers du registre */
+  --color-paper: #f5f5f0;
+  --color-parchment: #f8f3e6;
+  --color-parchment-dark: #efe6d0;
+
+  /* Ors et encres */
+  --color-gold: #c5a059;
+  --color-gold-light: #e6c878;
+  --color-brass: #b08d57;
+  --color-ink: #2b2620;
+
+  /* Palette rétro années 50 */
+  --color-copper: #b87333; /* ocre / cuivre — Réglages */
+  --color-atelier: #3e5d78; /* bleu atelier — Informations */
+  --color-verdigris: #5c8d7b; /* vert-de-gris — Écriture */
+  --color-retro-violet: #6b5b95; /* violet — Export */
+
+  /* Ombres signature */
+  --shadow-book: 0 20px 50px rgba(0, 0, 0, 0.6);
+  --shadow-binding-left: inset -25px 0 25px -20px rgba(0, 0, 0, 0.15);
+  --shadow-binding-right: inset 25px 0 25px -20px rgba(0, 0, 0, 0.15);
+
+  /* Typographie littéraire */
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-sans: "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  background-color: var(--color-desk);
+  font-family: var(--font-serif);
+  color: var(--color-ink);
+  /* Texture feutrée évoquant le mobilier de bureau vintage des années 50 */
+  background-image:
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.035), transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(0, 0, 0, 0.5), transparent 55%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.012) 0 2px,
+      transparent 2px 7px
+    );
+  background-attachment: fixed;
+}
+
+/* Livre virtuel — masque les ascenseurs internes des pages (immersion) tout en
+   conservant le défilement (molette / gestes tactiles) : le contenu reste
+   intégralement accessible, sans barre de défilement visible. */
+.menu-flipbook__page,
+.menu-flipbook__page * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* anciens Edge / IE */
+}
+
+.menu-flipbook__page::-webkit-scrollbar,
+.menu-flipbook__page *::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* WebView2 / Chromium / Safari */
+}
+
