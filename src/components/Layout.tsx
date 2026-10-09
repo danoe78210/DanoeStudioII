@@ -95,7 +95,7 @@ export const Layout: React.FC<LayoutProps> = ({
               style={{
                 transformOrigin: "left center",
                 transformStyle: "preserve-3d",
-                transition: "transform 450ms cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)",
                 transform: closing ? "rotateY(-180deg)" : "rotateY(0deg)",
               }}
             >

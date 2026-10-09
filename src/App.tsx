@@ -188,14 +188,14 @@ const App: React.FC = () => {
     onCloseRequested(() => setIsClosing(true));
   }, []);
 
-  // Extinction du glow (~500 ms) puis fermeture native définitive.
+  // Extinction du glow (~1 000 ms) puis fermeture native définitive.
   useEffect(() => {
     if (!isClosing) {
       return;
     }
     const handle = window.setTimeout(() => {
       void finalizeExit();
-    }, 520);
+    }, 1150);
     return () => window.clearTimeout(handle);
   }, [isClosing]);
 

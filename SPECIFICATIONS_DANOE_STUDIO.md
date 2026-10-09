@@ -1523,7 +1523,7 @@ déclenchent la même cinématique (`isClosing = true`, `src/utils/shutdown.ts`)
 ### 22.2 Animation 3D (`Layout.tsx`)
 - Perspective générale **1400 px** (`[perspective:1400px]`).
 - Volet droit : `transform-origin: left center`, `rotateY(-180deg)`,
-  transition **450 ms** `cubic-bezier(0.4, 0, 0.2, 1)`.
+  transition **1000 ms** `cubic-bezier(0.22, 1, 0.36, 1)`.
 - `backface-visibility: hidden` : la **face externe** (couverture cuir/cuivre + logo doré)
   devient visible au verso.
 
@@ -1534,7 +1534,7 @@ déclenchent la même cinématique (`isClosing = true`, `src/utils/shutdown.ts`)
   `box-shadow: 0 0 25px 6px rgba(217, 119, 6, 0.6)`, apparition synchronisée avec la rotation.
 
 ### 22.4 Destruction propre (`commands.rs`)
-`finalize_exit` (≈ 520 ms après le début de la cinématique) : `window.destroy()` — libération
+`finalize_exit` (≈ 1150 ms après le début de la cinématique) : `window.destroy()` — libération
 ordonnée des threads WebView2, évitant l'erreur Chromium **Win32 1412** — puis `app.exit(0)`.
 Purge du cache volatil assurée sur `RunEvent::Exit` (§14/§17).
 

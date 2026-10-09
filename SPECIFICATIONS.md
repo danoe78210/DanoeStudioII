@@ -158,9 +158,9 @@ visant un toponyme connu, et les règles désactivées.
    (opacité 0 → 1).
 4. **Seam glow** : bande lumineuse sur l'axe central (`0 0 25px 6px rgba(217, 119, 6, 0.6)`).
 5. **Rabattement 3D** : perspective **1400 px** ; volet droit `transform-origin: left`,
-   `rotateY(-180deg)` en **450 ms** `cubic-bezier(0.4, 0, 0.2, 1)` ; `backface-visibility`
+   `rotateY(-180deg)` en **1000 ms** `cubic-bezier(0.22, 1, 0.36, 1)` ; `backface-visibility`
    révèle la couverture cuir + logo doré.
-6. **Clôture** (~520 ms) : `finalize_exit` → `window.destroy()` (libération ordonnée des
+6. **Clôture** (~1150 ms) : `finalize_exit` → `window.destroy()` (libération ordonnée des
    threads WebView2 → évite l'erreur Win32 1412) puis `app.exit(0)`.
 7. **Purge garantie** : cache volatil nettoyé sur `RunEvent::Exit` (jamais les données
    utilisateur ni le profil WebView).
