@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Danoë Studio — Machine à romans</title>
+    <meta
+      name="description"
+      content="Danoë Studio : atelier d'écriture littéraire rétro. Organisation du manuscrit, correcteur linguistique, export KDP (Word, PDF, EPUB) et aperçu interactif."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              desk: "#12161f",
+              "desk-light": "#1b212e",
+              parchment: "#f8f3e6",
+              "parchment-dark": "#efe6d0",
+              ink: "#2b2620",
+              copper: "#b87333",
+              brass: "#b08d57",
+              gold: "#c5a059",
+              atelier: "#3e5d78",
+              verdigris: "#5c8d7b",
+              "retro-violet": "#6b5b95",
+            },
+            fontFamily: {
+              display: ["Cinzel", "Georgia", "serif"],
+              serif: ['"Playfair Display"', "Georgia", "serif"],
+              mono: ['"JetBrains Mono"', "Consolas", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Bureau feutré + lueur ambrée diffuse (effet Glow) */
+      body {
+        background-color: #12161f;
+        background-image:
+          radial-gradient(circle at 50% 18%, rgba(198, 134, 66, 0.26), transparent 58%),
+          radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.035), transparent 45%),
+          radial-gradient(circle at 85% 90%, rgba(0, 0, 0, 0.5), transparent 55%),
+          repeating-linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.012) 0 2px,
+            transparent 2px 7px
+          );
+        background-attachment: fixed;
+      }
+      /* Lueur de reliure (seam glow) entre les deux volets du registre */
+      .seam-glow {
+        box-shadow: 0 0 25px 6px rgba(217, 119, 6, 0.55);
+      }
+      /* Vis de fixation des plaques techniques (fente cruciforme stylisée) */
+      .screw {
+        position: absolute;
+        height: 0.6rem;
+        width: 0.6rem;
+        border-radius: 9999px;
+        background-image: linear-gradient(135deg, #e3d2ab 0%, #a08b60 45%, #5b4a2c 100%);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.65), inset 0 0 2px rgba(0, 0, 0, 0.45);
+      }
+      .screw::after {
+        content: "";
+        position: absolute;
+        inset: 38% 12%;
+        background: rgba(0, 0, 0, 0.45);
+        transform: rotate(28deg);
+        border-radius: 1px;
+      }
+      .screw-tl { top: 0.5rem; left: 0.5rem; }
+      .screw-tr { top: 0.5rem; right: 0.5rem; }
+      .screw-bl { bottom: 0.5rem; left: 0.5rem; }
+      .screw-br { bottom: 0.5rem; right: 0.5rem; }
+      /* Bouton bakélite / cuivre : biseau + reflets internes */
+      .bakelite {
+        background-image: linear-gradient(to bottom, #c98342 0%, #a5622a 55%, #8a5426 100%);
+        border: 1px solid rgba(176, 141, 87, 0.6);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.32),
+          inset 0 -2px 4px rgba(0, 0, 0, 0.35),
+          0 6px 16px rgba(0, 0, 0, 0.55);
+      }
+      .bakelite:hover {
+        filter: brightness(1.1);
+      }
+      .bakelite:active {
+        transform: translateY(1px);
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen font-serif text-ink antialiased">
+    <main class="relative mx-auto w-full max-w-6xl px-6 py-12">
+      <!-- Bandeau d'ambiance -->
+      <header class="mb-8 text-center">
+        <p class="font-mono text-[11px] uppercase tracking-[0.5em] text-parchment/50">
+          Atelier d'écriture littéraire · MMXXVI
+        </p>
+      </header>
+
+      <!-- Le Registre : double page rétro -->
+      <section
+        class="relative grid grid-cols-1 overflow-hidden rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.65)] md:grid-cols-2"
+      >
+        <!-- Volet gauche : page de garde -->
+        <div
+          class="relative bg-parchment px-10 py-12 shadow-[inset_-25px_0_25px_-20px_rgba(0,0,0,0.18)]"
+        >
+          <div class="mb-8 flex h-24 w-24 items-center justify-center rounded-sm bg-gold shadow-[inset_0_4px_10px_rgba(0,0,0,0.35),inset_0_-2px_6px_rgba(255,255,255,0.15)]">
+            <span
+              class="font-display text-5xl font-bold leading-none text-parchment drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]"
+              >D</span
+            >
+          </div>
+
+          <h1 class="font-display text-4xl uppercase tracking-[0.35em] text-stone-800">
+            Danoë Studio
+          </h1>
+
+          <div class="mt-5 flex w-72 items-center gap-4">
+            <span class="h-px flex-1 bg-stone-400/60"></span>
+            <span class="whitespace-nowrap text-sm italic text-stone-500">Machine à romans</span>
+            <span class="h-px flex-1 bg-stone-400/60"></span>
+          </div>
+
+          <p class="mt-8 max-w-md text-[15px] leading-relaxed text-stone-700">
+            Un grand registre ancien ouvert sur un bureau d'atelier : composez vos actes et vos
+            chapitres, laissez la machine veiller sur la langue, puis coulez votre manuscrit en un
+            livre prêt à paraître. Du brouillon à l'épreuve d'imprimeur, tout reste sur votre
+            bureau.
+          </p>
+
+          <ul class="mt-8 space-y-2 font-mono text-[11px] uppercase tracking-widest text-stone-500">
+            <li>· Manuscrit local, aucun compte</li>
+            <li>· Sortie conforme KDP broché</li>
+            <li>· Fonctionne hors ligne</li>
+          </ul>
+        </div>
+        <!-- Lueur de reliure (seam glow) -->
+        <div
+          aria-hidden="true"
+          class="seam-glow pointer-events-none absolute inset-y-3 left-1/2 hidden w-[3px] -translate-x-1/2 rounded-full bg-amber-500/60 md:block"
+        ></div>
+
+        <!-- Volet droit : téléchargement + spécifications -->
+        <div
+          class="relative flex flex-col justify-center gap-6 bg-parchment-dark px-10 py-12 shadow-[inset_25px_0_25px_-20px_rgba(0,0,0,0.18)]"
+        >
+          <h2 class="font-display text-2xl uppercase tracking-[0.3em] text-stone-700">
+            Épreuve d'imprimeur
+          </h2>
+
+          <a
+            href="https://github.com/danoe78210/DanoeStudioII/releases/latest"
+            class="bakelite inline-flex flex-wrap items-center justify-center gap-3 rounded-sm px-6 py-4 text-center font-display text-sm uppercase tracking-[0.2em] text-amber-50"
+          >
+            Télécharger pour Windows
+            <span class="font-mono text-[11px] normal-case tracking-normal text-amber-100/80">
+              v0.1.0 · autonome
+            </span>
+          </a>
+
+          <p class="font-mono text-[11px] uppercase tracking-widest text-stone-500">
+            Windows 10/11 64-bit · Installateur autonome · Aucun prérequis
+          </p>
+
+          <p class="font-serif text-[13px] italic leading-relaxed text-stone-600">
+            L'installateur dépose l'atelier sur votre machine ; le manuscrit, lui, reste où vous
+            l'avez posé.
+          </p>
+        </div>
+      </section>
+
+      <!-- Plaques techniques rétro -->
+      <section class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <article
+          class="relative rounded-sm border border-brass/40 bg-desk-light/80 px-6 py-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+        >
+          <span class="screw screw-tl"></span><span class="screw screw-tr"></span>
+          <span class="screw screw-bl"></span><span class="screw screw-br"></span>
+          <h3 class="mb-2 font-display text-sm uppercase tracking-[0.25em] text-gold">
+            Organisation &amp; Chemin de fer
+          </h3>
+          <p class="font-serif text-[13px] leading-relaxed text-parchment/70">
+            Glisser-déposer des actes, chapitres et pages modulaires : le manuscrit s'ordonne
+            section par section, comme un plan de voies.
+          </p>
+        </article>
+
+        <article
+          class="relative rounded-sm border border-brass/40 bg-desk-light/80 px-6 py-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+        >
+          <span class="screw screw-tl"></span><span class="screw screw-tr"></span>
+          <span class="screw screw-bl"></span><span class="screw screw-br"></span>
+          <h3 class="mb-2 font-display text-sm uppercase tracking-[0.25em] text-gold">
+            Correcteur linguistique
+          </h3>
+          <p class="font-serif text-[13px] leading-relaxed text-parchment/70">
+            LanguageTool au banc d'essai : syntaxe Markdown masquée (frontmatter Obsidian, appels de
+            notes), toponymes et noms propres mis de côté, fautes soulignées à l'encre rouge.
+          </p>
+        </article>
+
+        <article
+          class="relative rounded-sm border border-brass/40 bg-desk-light/80 px-6 py-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+        >
+          <span class="screw screw-tl"></span><span class="screw screw-tr"></span>
+          <span class="screw screw-bl"></span><span class="screw screw-br"></span>
+          <h3 class="mb-2 font-display text-sm uppercase tracking-[0.25em] text-gold">
+            Moteur Typst &amp; KDP
+          </h3>
+          <p class="font-serif text-[13px] leading-relaxed text-parchment/70">
+            PDF broché prêt-à-imprimer (gouttières et marges calculées), Word .docx structuré et
+            EPUB 3, à partir d'un seul manuscrit.
+          </p>
+        </article>
+
+        <article
+          class="relative rounded-sm border border-brass/40 bg-desk-light/80 px-6 py-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+        >
+          <span class="screw screw-tl"></span><span class="screw screw-tr"></span>
+          <span class="screw screw-bl"></span><span class="screw screw-br"></span>
+          <h3 class="mb-2 font-display text-sm uppercase tracking-[0.25em] text-gold">
+            Aperçu interactif
+          </h3>
+          <p class="font-serif text-[13px] leading-relaxed text-parchment/70">
+            Feuilletez le livre rendu : double page sur l'écran, reliure ombrée au centre,
+            chargement des pages à la demande.
+          </p>
+        </article>
+      </section>
+
+      <!-- Console inférieure -->
+      <section
+        class="mt-10 rounded-sm border border-brass/30 bg-black/50 px-6 py-5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)]"
+      >
+        <div
+          class="mb-3 flex items-center justify-between gap-4 font-mono text-[10px] uppercase tracking-widest text-parchment/50"
+        >
+          <span>Journal des opérations</span>
+          <span class="text-verdigris">● Prêt pour l'édition</span>
+        </div>
+        <div class="space-y-1 font-mono text-[11px] text-parchment/75">
+          <p><span class="text-parchment/40">[—]</span> Registre initialisé. Prêt à écrire.</p>
+          <p><span class="text-parchment/40">[—]</span> Moteur Typst armé — format de coupe 6×9 po.</p>
+          <p><span class="text-parchment/40">[—]</span> Correcteur linguistique en veille.</p>
+        </div>
+        <p class="mt-4 font-mono text-[11px] text-parchment/60">
+          Dépôt :
+          <a
+            href="https://github.com/danoe78210/DanoeStudioII"
+            class="text-copper underline decoration-dotted underline-offset-4 hover:text-gold"
+            >github.com/danoe78210/DanoeStudioII</a
+          >
+        </p>
+      </section>
+
+      <footer
+        class="mt-10 text-center font-mono text-[10px] uppercase tracking-[0.3em] text-parchment/35"
+      >
+        Danoë Studio · Machine à romans · Fait à la main
+      </footer>
+    </main>
+  </body>
+</html>
+
