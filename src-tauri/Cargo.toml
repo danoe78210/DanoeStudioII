@@ -1,6 +1,6 @@
 [package]
 name = "danoe-studio"
-version = "0.1.0"
+version = "0.2.0"
 description = "Danoë Studio — machine à romans (export KDP Word / PDF / EPUB)"
 authors = ["Danoë"]
 edition = "2021"
