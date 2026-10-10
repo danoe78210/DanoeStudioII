@@ -740,6 +740,7 @@ const App: React.FC = () => {
     onExport: runExport,
     onPreview: handlePreview,
     isExporting: running,
+    onQuit: handleQuit,
   };
 
   const activeIndex = Math.max(0, MENU_ORDER.indexOf(activeMenu));
@@ -748,7 +749,13 @@ const App: React.FC = () => {
     <>
       <StudioProvider value={studioValue}>
         <Layout
-          leftContent={<LeftPage activeMenu={activeMenu} setActiveMenu={setActiveMenu} />}
+          leftContent={
+            <LeftPage
+              activeMenu={activeMenu}
+              setActiveMenu={setActiveMenu}
+              onExitApp={handleQuit}
+            />
+          }
           bookPages={BOOK_PAGES}
           activeIndex={activeIndex}
           progress={progress}
@@ -758,7 +765,6 @@ const App: React.FC = () => {
           saveState={saveState}
           projectFilePath={projectFilePath}
           onPickProjectFile={handlePickProjectFile}
-          onQuit={handleQuit}
           closing={isClosing}
         />
       </StudioProvider>

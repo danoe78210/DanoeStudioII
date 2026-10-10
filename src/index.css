@@ -31,6 +31,11 @@
   --font-serif: Georgia, "Times New Roman", serif;
   --font-sans: "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+
+  /* Animations atmosphériques de la page de garde */
+  --animate-lamp-cone: lamp-cone 6s ease-in-out infinite;
+  --animate-dust: dust-rise 12s linear infinite;
+  --animate-glint: glint-sweep 13s ease-in-out infinite;
 }
 
 html,
@@ -69,5 +74,57 @@ body {
   width: 0;
   height: 0;
   display: none; /* WebView2 / Chromium / Safari */
+}
+
+/* ── Page de garde « L'Atelier » : lumière et poussière (CSS pur) ────────── */
+
+/* Cône de lumière volumétrique : respiration lente de la lampe (6 s). */
+@keyframes lamp-cone {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+/* Poussière dorée : dérive ascendante le long du faisceau. */
+@keyframes dust-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate3d(8px, -120px, 0);
+    opacity: 0;
+  }
+}
+
+/* Glint d'orfèvrerie : balayage spéculaire bref, long repos (13 s). */
+@keyframes glint-sweep {
+  0%,
+  6% {
+    transform: translateX(0) skewX(-25deg);
+  }
+  22%,
+  100% {
+    transform: translateX(400%) skewX(-25deg);
+  }
+}
+
+/* Accessibilité : les effets restent décoratifs, jamais indispensables. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-lamp-cone,
+  .animate-dust,
+  .animate-glint {
+    animation: none;
+  }
 }
 

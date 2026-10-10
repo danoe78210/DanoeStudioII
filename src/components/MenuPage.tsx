@@ -32,6 +32,7 @@ export const MenuPage: React.FC<{ menu: ActiveMenu }> = ({ menu }) => {
           onLogLevelChange={studio.onLogLevelChange}
           onLogDirectoryChange={studio.onLogDirectoryChange}
           onOpenLog={studio.onOpenLog}
+          onQuit={studio.onQuit}
         />
       );
     case "infos":

@@ -1,5 +1,4 @@
 import React, { type ReactNode } from "react";
-import { LogOut } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import { LogPanel } from "./LogPanel";
 import { MenuFlipBook } from "./MenuFlipBook";
@@ -26,8 +25,6 @@ interface LayoutProps {
   projectFilePath: string | null;
   /** Choisit l'emplacement du fichier de projet. */
   onPickProjectFile: () => void;
-  /** Ferme proprement l'application (vidage du cache + sortie native). */
-  onQuit: () => void;
   /** Cinématique de fermeture du livre en cours (volet 3D + glow). */
   closing?: boolean;
 }
@@ -43,22 +40,10 @@ export const Layout: React.FC<LayoutProps> = ({
   saveState,
   projectFilePath,
   onPickProjectFile,
-  onQuit,
   closing = false,
 }) => {
   return (
     <div className="relative flex h-screen w-full flex-col items-center gap-6 overflow-hidden bg-desk p-6">
-      {/* Fermeture propre : vide les caches locaux puis quitte l'application. */}
-      <button
-        type="button"
-        onClick={onQuit}
-        title="Vider le cache applicatif puis fermer Danoë Studio"
-        className="absolute top-5 right-6 z-10 flex items-center gap-2 rounded-sm border border-stone-500/40 bg-desk-light/90 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-parchment/90 shadow-[0_6px_16px_rgba(0,0,0,0.45)] transition-colors hover:bg-copper hover:text-amber-50"
-      >
-        <LogOut size={15} strokeWidth={1.75} />
-        Quitter &amp; vider le cache
-      </button>
-
       {/* Colonne commune : la barre de progression, le livre et le journal
           partagent EXACTEMENT la même emprise horizontale (largeur + position).
           `px-[6.5rem]` réserve une gouttière symétrique pour les marque-pages
@@ -107,17 +92,34 @@ export const Layout: React.FC<LayoutProps> = ({
                 <MenuFlipBook pages={bookPages} activeIndex={activeIndex} />
               </div>
 
-              {/* Face externe : couverture cuir/cuivre rétro, logo doré (visible au verso). */}
+              {/* Face externe (Verso) : couverture cuir patinée, révélée pendant le rabat. */}
               <div
                 aria-hidden
-                className="absolute inset-0 flex items-center justify-center rounded-r-md border border-brass/40 bg-linear-to-br from-[#7a4a24] via-[#5c3418] to-[#3d2210] shadow-[inset_0_0_60px_rgba(0,0,0,0.5)]"
+                className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-r-md bg-[#1c140e] shadow-[inset_20px_0_30px_rgba(0,0,0,0.6)]"
                 style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden" }}
               >
-                <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gold/90 shadow-[inset_0_2px_6px_rgba(0,0,0,0.35)]">
-                  <span className="font-serif text-4xl font-bold leading-none text-[#3d2210]">
-                    D
-                  </span>
-                </span>
+                {/* Cadre extérieur laiton. */}
+                <div className="m-2 flex h-[calc(100%-1rem)] w-[calc(100%-1rem)] items-center justify-center rounded-r-md border-2 border-brass/50">
+                  {/* Filet intérieur estampé à chaud + coins renforcés. */}
+                  <div className="relative flex h-full w-full items-center justify-center rounded-sm border border-brass/25">
+                    <span className="pointer-events-none absolute top-1 left-1 h-5 w-5 border-t-2 border-l-2 border-brass/40" />
+                    <span className="pointer-events-none absolute top-1 right-1 h-5 w-5 border-t-2 border-r-2 border-brass/40" />
+                    <span className="pointer-events-none absolute bottom-1 left-1 h-5 w-5 border-b-2 border-l-2 border-brass/40" />
+                    <span className="pointer-events-none absolute right-1 bottom-1 h-5 w-5 border-r-2 border-b-2 border-brass/40" />
+
+                    {/* Sceau central : monogramme doré + mention discrète. */}
+                    <div className="flex flex-col items-center gap-3">
+                      <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gold/90 shadow-[inset_0_2px_6px_rgba(0,0,0,0.35),0_4px_12px_rgba(0,0,0,0.5)]">
+                        <span className="font-serif text-4xl font-bold leading-none text-[#3d2210]">
+                          D
+                        </span>
+                      </span>
+                      <span className="font-serif text-xs uppercase tracking-[0.35em] text-brass/70">
+                        Dano&euml; Studio
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
           </div>

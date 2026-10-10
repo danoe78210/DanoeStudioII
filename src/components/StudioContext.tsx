@@ -67,6 +67,10 @@ export interface StudioContextValue {
   /** Ouvre l'aperçu interactif (flipbook) du manuscrit rendu par Typst. */
   onPreview: () => void;
   isExporting: boolean;
+
+  // --- Application ---
+  /** Ferme proprement l'application (cinématique 3D du livre + purge des caches). */
+  onQuit: () => void;
 }
 
 const StudioContext = createContext<StudioContextValue | null>(null);

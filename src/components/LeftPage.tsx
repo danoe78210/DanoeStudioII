@@ -1,5 +1,5 @@
 import React from "react";
-import { Settings, Info, ListTree, Share2, SpellCheck } from "lucide-react";
+import { Settings, Info, ListTree, Share2, SpellCheck, LogOut } from "lucide-react";
 import type { ActiveMenu } from "../types";
 
 interface LeftPageProps {
@@ -7,6 +7,8 @@ interface LeftPageProps {
   activeMenu: ActiveMenu;
   /** Sélectionne un onglet. */
   setActiveMenu: (menu: ActiveMenu) => void;
+  /** Ferme proprement l'application (cinématique 3D puis sortie native). */
+  onExitApp: () => void;
 }
 
 interface TabItem {
@@ -27,7 +29,11 @@ const tabs: TabItem[] = [
   { id: "export", label: "Export", icon: Share2, color: "bg-retro-violet text-violet-50" },
 ];
 
-export const LeftPage: React.FC<LeftPageProps> = ({ activeMenu, setActiveMenu }) => {
+export const LeftPage: React.FC<LeftPageProps> = ({
+  activeMenu,
+  setActiveMenu,
+  onExitApp,
+}) => {
   return (
     <div className="relative flex h-full flex-col items-center justify-center text-center">
       {/* Marque-pages empilés verticalement, en débordement sur la gauche */}
@@ -52,6 +58,19 @@ export const LeftPage: React.FC<LeftPageProps> = ({ activeMenu, setActiveMenu })
             </button>
           );
         })}
+
+        {/* Action permanente dédiée : sortie de l'atelier depuis tout écran. */}
+        <div className="mt-4 border-t border-stone-400/20 pt-2">
+          <button
+            type="button"
+            onClick={onExitApp}
+            title="Fermer Danoe Studio"
+            className="flex w-36 items-center gap-3 rounded-l-md border-l-2 border-amber-600/60 bg-[#1c222e] px-4 py-3 text-left text-sm font-medium text-stone-300 shadow-md transition-all duration-150 hover:translate-x-1 hover:bg-[#252d3d] hover:shadow-lg"
+          >
+            <LogOut size={16} strokeWidth={1.75} />
+            <span className="tracking-wide">Quitter l&rsquo;atelier</span>
+          </button>
+        </div>
       </nav>
 
       {/* Page de garde : identité visuelle */}

@@ -18,8 +18,9 @@ import { SubtitlePage } from "./settings/SubtitlePage";
 import { SourcesPage } from "./settings/SourcesPage";
 import { ErrorLogPage } from "./settings/ErrorLogPage";
 import { CorrectorPage } from "./settings/CorrectorPage";
+import { WelcomeCover } from "./WelcomeCover";
 
-type SettingsLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+type SettingsLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 interface SettingsNavigatorProps {
   /** Configuration de mise en page du manuscrit exporté (jamais l'UI). */
@@ -46,10 +47,13 @@ interface SettingsNavigatorProps {
   onLogDirectoryChange: (path: string) => void;
   /** Demande à l'OS d'ouvrir le fichier journal. */
   onOpenLog: () => void;
+  /** Ferme proprement l'application (cinématique de fermeture + purge des caches). */
+  onQuit: () => void;
 }
 
 // Fil d'Ariane selon le niveau courant.
 const BREADCRUMBS: Record<SettingsLevel, string[]> = {
+  0: [],
   1: ["Réglages"],
   2: ["Réglages", "Paramètres du livre"],
   3: ["Réglages", "Paramètres du livre", "Format du livre"],
@@ -86,8 +90,9 @@ export const SettingsNavigator: React.FC<SettingsNavigatorProps> = ({
   onLogLevelChange,
   onLogDirectoryChange,
   onOpenLog,
+  onQuit,
 }) => {
-  const [level, setLevel] = useState<SettingsLevel>(1);
+  const [level, setLevel] = useState<SettingsLevel>(0);
   // 1 = tour vers l'avant, -1 = retour.
   const [direction, setDirection] = useState(1);
 
@@ -97,9 +102,11 @@ export const SettingsNavigator: React.FC<SettingsNavigatorProps> = ({
   };
 
   return (
-    <div className="flex h-full min-h-[60vh] flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Fil d'Ariane */}
-      <nav className="mb-5 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-stone-500">
+      <nav
+        className={`${level === 0 ? "hidden " : ""}mb-5 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-stone-500`}
+      >
         {BREADCRUMBS[level].map((crumb, index, all) => (
           <React.Fragment key={crumb}>
             {index > 0 && <span className="text-stone-400">&rsaquo;</span>}
@@ -128,6 +135,10 @@ export const SettingsNavigator: React.FC<SettingsNavigatorProps> = ({
             }}
             className="h-full"
           >
+            {level === 0 && (
+              <WelcomeCover onOpenSettings={() => goTo(1, 1)} onQuit={onQuit} />
+            )}
+
             {level === 1 && (
               <SettingsView
                 onOpenGeneralSettings={() => goTo(2, 1)}
