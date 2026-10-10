@@ -30,6 +30,7 @@
 19. [Organisation — pagination & D&D multi-pages](#19-organisation--pagination--dd-multi-pages)
 21. [Module Correcteur linguistique (LanguageTool)](#21-module-correcteur-linguistique-languagetool)
 22. [Cinématique 3D de fermeture & effet Glow](#22-cinématique-3d-de-fermeture--effet-glow)
+23. [Matrice de conformité et limites connues](#23-matrice-de-conformité-et-limites-connues)
 
 ---
 
@@ -99,6 +100,11 @@ npm run lint      # eslint .
 npm run preview   # prévisualisation du build
 ```
 
+**Découpage du build (`vite.config.ts`) :** `chunkSizeWarningLimit: 1200` +
+`rollupOptions.output.manualChunks` fragmentent les dépendances lourdes en chunks **vendor** :
+`vendor-pdfjs` (`pdfjs-dist`), `vendor-motion` (`framer-motion`), `vendor-dnd` (`@dnd-kit`),
+`vendor` (reste de `node_modules`). Supprime l'avertissement « chunks > 500 kB ».
+
 **Contraintes de compilation** (`tsconfig.app.json`) — elles conditionnent le code :
 - `verbatimModuleSyntax: true` → **les imports de TYPES doivent utiliser `import type`**
   (ex. `import type { LogEntry } from "../types"`, ou `import React, { type ReactNode } from "react"`).
@@ -165,7 +171,7 @@ DanoeStudioII/
    │  └─ shell.ts                 # Ouverture de fichier par l'OS (Tauri shell)
    └─ components/
       ├─ Layout.tsx               # Registre + cinématique 3D de fermeture (glow)
-      ├─ LeftPage.tsx             # Onglets + page de garde
+      ├─ LeftPage.tsx             # Onglets + action « Quitter l'atelier » + page de garde
       ├─ ProgressBar.tsx          # Barre de progression rétro-industrielle
       ├─ LogPanel.tsx             # Journal des opérations (console)
       ├─ MenuFlipBook.tsx         # Livre virtuel des onglets (react-pageflip)
@@ -286,7 +292,7 @@ stries diagonales (`repeating-linear-gradient 45deg`), en `background-attachment
      │   ├─ <section> PAGE GAUCHE  ← leftContent  = <LeftPage/>
      │   │     • onglets marque-pages (débordent à -left-36)
      │   │     • page de garde (lettrine D, titre, sous-titre)
-     │   └─ <section> PAGE DROITE  ← rightContent = écran actif
+     │   └─ <section> PAGE DROITE  ← volet double-face 3D (recto = <MenuFlipBook>, verso = couverture)
      └─ <LogPanel logs/>                (SOUS le livre — console)
 ```
 
@@ -295,7 +301,11 @@ stries diagonales (`repeating-linear-gradient 45deg`), en `background-attachment
 - Livre : `relative flex w-full max-w-6xl rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.6)]`.
 - Chaque page : `relative min-h-[68vh] w-1/2 rounded-l-md|rounded-r-md bg-parchment p-10`
   + ombre de reliure interne (gauche/droite).
-- Props : `leftContent`, `rightContent`, `progress`, `progressLabel`, `running`, `logs`.
+- Props : `leftContent`, `bookPages`, `activeIndex`, `progress`, `progressLabel`, `running`,
+  `logs`, `saveState`, `projectFilePath`, `onPickProjectFile`, `closing`.
+- **Double-face 3D** : la page de droite est un volet (`transform-origin: left center`,
+  `transform-style: preserve-3d`) à **deux calques** `backface-visibility: hidden` — recto
+  `MenuFlipBook`, verso **couverture cuir** (voir §22.2).
 
 ### `LeftPage.tsx` (page de gauche)
 - **Onglets** : `<nav class="absolute top-16 -left-36 flex flex-col gap-1">`, boutons
@@ -304,8 +314,16 @@ stries diagonales (`repeating-linear-gradient 45deg`), en `background-attachment
   |---|---|---|---|
   | Réglages | `reglages` | `bg-copper` | `Settings` |
   | Informations | `infos` | `bg-atelier` | `Info` |
-  | Écriture | `ecriture` | `bg-verdigris` | `PenLine` |
+  | Organisation | `organisation` | `bg-verdigris` | `ListTree` |
+  | Correcteur | `correcteur` | `bg-gold` | `SpellCheck` |
   | Export | `export` | `bg-retro-violet` | `Share2` |
+  | **Quitter l'atelier** | *(action)* | `bg-[#1c222e]` | `LogOut` |
+- **Action permanente « Quitter l'atelier »** : placée **après un séparateur discret**
+  (`mt-4 pt-2 border-t border-stone-400/20`), bouton rétro
+  `bg-[#1c222e] hover:bg-[#252d3d] text-stone-300 border-l-2 border-amber-600/60` (icône `LogOut` 16 px).
+  N'altère **pas** `activeMenu` ; appelle directement la prop `onExitApp()`
+  (`App.tsx` → `handleQuit` : `isClosing = true` → cinématique 3D → purge du cache → `finalize_exit`).
+  Disponible depuis **tout écran**.
 - **Page de garde** : carré doré contenant la **lettrine « D »** (serif, ombre interne),
   titre **« ANOË STUDIO »** (majuscules, `tracking-[0.4em]`), sous-titre **« Machine à romans »**
   (italique) encadré de deux filets.
@@ -369,7 +387,18 @@ const pageVariants = {
 
 ## 9. Écrans — Onglet Réglages
 
-Onglet par défaut (`activeMenu = 'reglages'`). Rendu par **`SettingsNavigator`** (9 niveaux).
+Onglet par défaut (`activeMenu = 'reglages'`). Rendu par **`SettingsNavigator`** (niveaux `0 → 9` ; `0` = page de garde `WelcomeCover`).
+
+**Liste ordonnée stricte des niveaux :**
+1. **Sommaire** — `SettingsView.tsx`
+2. **Paramètres du livre** (Format & styles) — `SettingsGeneralPage.tsx`
+3. **Format de coupe KDP** — `FormatPage.tsx`
+4. **Corps du texte** — `BodyTextPage.tsx`
+5. **Titres** — `ChapterTitlePage.tsx`
+6. **Sous-titres** — `SubtitlePage.tsx`
+7. **Mes sources** — `SourcesPage.tsx`
+8. **Journal des erreurs** — `ErrorLogPage.tsx`
+9. **Correcteur linguistique** — `CorrectorPage.tsx`
 
 ### Niveau 1 — Sommaire des Réglages (`SettingsView.tsx`)
 Titre centré « RÉGLAGES ». Liste de **cartes-lignes** (ordre strict) :
@@ -379,13 +408,14 @@ Titre centré « RÉGLAGES ». Liste de **cartes-lignes** (ordre strict) :
 | 1 | Paramètres du livre | `Settings` | ligne **cliquable** + sous-titre `Format de coupe : <label>` + **bouton OUVRIR** (cuivre, `SlidersHorizontal`) |
 | 2 | Mes sources | `FolderOpen` | ligne cliquable + chevron `›` |
 | 3 | Journal des erreurs | `ShieldAlert` | ligne cliquable + chevron |
+| 4 | Correcteur linguistique | `SpellCheck` | ligne cliquable + chevron |
 
 > Le réglage « **Dossier des exports** » est **retiré** (l'export ouvre la boîte de dialogue native à
 > chaque génération — §20).
 
 Ligne : `flex items-center gap-4 border-b border-stone-400/25 bg-stone-500/5 px-4 py-4`
 (+ `cursor-pointer` si navigable). Le bouton OUVRIR est en cuivre (§5.5) et stoppe la
-propagation du clic. Chaque clic → `goTo(2|7|9, +1)`.
+propagation du clic. Chaque clic → `goTo(2|7|8|9, +1)`.
 
 ### Niveau 2 — Paramètres du livre (`SettingsGeneralPage.tsx`)
 Fil d'Ariane : `Réglages › Paramètres du livre`. Bouton retour.
@@ -397,7 +427,7 @@ Fil d'Ariane : `Réglages › Paramètres du livre`. Bouton retour.
   - **Sous-titres** (`Heading2`) — sous-titre `${fontLabel(subtitleFont)} ${subtitleSize} pt`
   → niveaux 4 / 5 / 6.
 
-### Niveau 3 — Format du livre (`FormatPage.tsx`)
+### Niveau 3 — Format de coupe KDP (`FormatPage.tsx`)
 Liste des **7 formats KDP** (`TRIM_PRESETS`) en lignes radio (`RadioRow`) :
 
 | id | Libellé | cm |
@@ -420,7 +450,7 @@ Clic → `onTrimChange(id)` (met à jour `manuscriptConfig.trimSize`, journalise
   - Justification : `Gauche` / `Justifié`
   - Lettrine : `Oui` / `Non`
 
-### Niveau 5 — Titre du chapitre (`ChapterTitlePage.tsx`)
+### Niveau 5 — Titres (`ChapterTitlePage.tsx`)
 - **Taille** : `12 · 14 · 16 · 18 · 20 pt`.
 - **Police** : option **« Identique au corps du texte »** (ligne pleine largeur, `FontRadioRow`)
   + grille 2 colonnes de 9 `FontCard`.
@@ -443,12 +473,12 @@ Page unique centralisant les **ressources brutes** du roman (remplace les ancien
 - Section **« TRAITEMENT DES IMAGES (EXPORT PDF) »** : pastilles rétro
   `Conserver les couleurs` · `Convertir en Noir & Blanc` (défaut, infobulle « recommandée »).
 
-### Niveau 8 — *(supprimé)* Dossier des exports
-Le réglage « Dossier des exports » est **retiré** : l'export utilise désormais **exclusivement** la
-**boîte de dialogue native de l'OS** (choix de l'emplacement fichier par fichier, §20). Aucun chemin
-d'export mémorisé, aucune organisation en sous-dossiers (`ExportsPage.tsx` n'est plus référencé).
+> **Réglage retiré** — « Dossier des exports » : l'export utilise **exclusivement** la **boîte de
+> dialogue native de l'OS** (emplacement choisi fichier par fichier, §20). Aucun chemin mémorisé,
+> aucune organisation en sous-dossiers (`ExportsPage.tsx` n'est plus référencé). La numérotation des
+> niveaux reste donc **stricte** (aucun niveau « fantôme »).
 
-### Niveau 9 — Journal des erreurs (`ErrorLogPage.tsx`)
+### Niveau 8 — Journal des erreurs (`ErrorLogPage.tsx`)
 - Section **« Niveau de diagnostic »** : pastilles
   `Standard` (alertes + erreurs critiques ; infobulle « recommandé ») /
   `Mécanique / Diagnostic` (toutes les opérations). Défaut = `Standard`.
@@ -540,7 +570,12 @@ pages spéciales appartenant au dernier Acte rencontré.
 
 **Séparateurs filigranés** (repères très discrets `StructureSeparator`, `text-stone-400/60`) :
 en tête de liste (page 1) *« --- Début de l'ouvrage (pages liminaires auto-générées) --- »* ;
-en pied de liste (dernière page) *« --- Fin de l'ouvrage (table des matières auto-générée) --- »*.
+en pied de liste (dernière page) *« --- Fin de l'ouvrage --- »*.
+
+> **Placement du Sommaire / TOC** : la table des matières est générée **en tête du manuscrit**,
+> juste après les liminaires et les dédicaces/épigraphes d'ouverture — donc **avant le premier
+> chapitre** (`export/body.rs` : « Table des matières : après les liminaires et les dédicaces/
+> épigraphes d'ouverture »). Elle n'est **jamais** placée en fin d'ouvrage.
 
 | Type | Contenu de la ligne |
 |---|---|
@@ -630,7 +665,7 @@ Tout est déclaré dans **`src/types.ts`**.
 
 ### Types transverses
 ```ts
-export type ActiveMenu = 'reglages' | 'infos' | 'ecriture' | 'export';
+export type ActiveMenu = 'reglages' | 'infos' | 'organisation' | 'correcteur' | 'export';
 
 export type LogLevel = 'info' | 'success' | 'warning' | 'error';
 
@@ -710,7 +745,6 @@ DEFAULT_MANUSCRIPT = { trimSize:"6x9", bodyFont:"Garamond", bodySize:11,
   chapterTitleFont:"body", chapterTitleSize:16, subtitleFont:"body", subtitleSize:14 };
 
 DEFAULT_SOURCES    = { directory:null, colorMode:"grayscale" };
-// DEFAULT_EXPORTS supprimé (plus de réglage « Dossier des exports » — §20).
 DEFAULT_ERROR_LOG  = { level:"standard",     directory:null };
 DEFAULT_BOOK_INFO  = { sagaTitle:"", title:"Les Schattenjägers", subtitle:"",
   author:"Danoë", year:"2026", isbn:"", publisher:"", copyright:"", website:"", otherBooks:"" };
@@ -725,7 +759,6 @@ const [progressLabel, setProgressLabel]     = useState('Aucune opération en cou
 const [running, setRunning]                 = useState(false);
 const [manuscriptConfig, setManuscriptConfig] = useState<ManuscriptLayoutConfig>(DEFAULT_MANUSCRIPT);
 const [sourceConfig, setSourceConfig]       = useState<SourcesConfig>(DEFAULT_SOURCES);
-const [exportConfig, setExportConfig]       = useState<ExportConfig>(DEFAULT_EXPORTS);
 const [errorLogConfig, setErrorLogConfig]   = useState<ErrorLogConfig>(DEFAULT_ERROR_LOG);
 const [bookInfo, setBookInfo]               = useState<BookInfoConfig>(DEFAULT_BOOK_INFO);
 const timerRef = useRef<number | null>(null);   // interval de l'export simulé
@@ -790,6 +823,14 @@ L'application **tourne en SPA Vite** dans un navigateur **et** en application de
 **Tauri v2** (`src-tauri/`, config `withGlobalTauri: true`). Les utilitaires **détectent**
 l'API Tauri sur `window.__TAURI__` et retombent proprement si elle est absente — le frontend
 reste identique dans les deux contextes.
+
+> **Tauri v2 — accès fichiers/dialogues exclusivement via le backend Rust.** Avec Tauri v2,
+> `withGlobalTauri` n'expose **pas** les API de plugins (`dialog`, `fs`, `shell`) sur
+> `window.__TAURI__`. Toutes les interactions fichiers/dialogues passent donc par des **commandes
+> Rust `invokeCommand`** (`pick_directory`, `list_directory_files`, `import_file_into_folder`,
+> `open_path`, `finalize_exit`, `clear_cache_and_exit`, …) — **aucun** plugin n'est appelé
+> directement depuis le frontend. Les utilitaires ne sondent que l'API **cœur**
+> (`__TAURI__.core.invoke`, `__TAURI__.event.listen`) ; hors Tauri, repli navigateur.
 
 ### `src/utils/tauri.ts` — pont de commandes (`invoke`) & événements
 ```ts
@@ -872,6 +913,9 @@ dépendance `@tauri-apps/api`.
    (id, label, icône lucide, couleur).
 2. Ajouter un `case` dans `renderRightPage()` (`App.tsx`).
 
+> L'action permanente **« Quitter l'atelier »** (`LeftPage`) est **hors** du tableau `tabs`
+> et n'a pas d'`id` dans `ActiveMenu` : c'est un bouton dédié appelant `onExitApp`.
+
 ### Règles à ne jamais enfreindre
 - **`import type`** pour tout type importé (`verbatimModuleSyntax`).
 - Pas de variable/import/paramètre inutilisé (`noUnusedLocals`/`noUnusedParameters`).
@@ -895,7 +939,9 @@ npm run build                             # doit réussir (tsc -b && vite build)
 ### Ce qui est implémenté (fonctionnel)
 - Bureau rétro texturé + registre double-page + reliure (ombres internes).
 - Barre de progression rétro-industrielle + journal des opérations.
-- Page de gauche : 4 onglets (marque-pages) + page de garde (lettrine, titre, sous-titre).
+- Page de gauche : **5 onglets** (marque-pages : Réglages, Informations, Organisation,
+  Correcteur, Export) + l'action permanente **« Quitter l'atelier »** sur la tranche + page de
+  garde (lettrine, titre, sous-titre).
 - **Onglet Réglages** : sommaire + **9 sous-pages** (niveaux 2 à 10), navigation par tour de page.
 - **Onglet Informations** : sommaire + **3 formulaires** (Identité, Administratif, Autres informations).
 - **Onglet Organisation** : structure du roman (Actes / Chapitres / Images) en glisser-déposer,
@@ -919,8 +965,9 @@ npm run build                             # doit réussir (tsc -b && vite build)
 | `cargo clippy --all-targets --all-features -- -D warnings` | **0 warning** |
 | `npm run tauri build` | Succès (exe ~29 MiB + MSI + NSIS) |
 
-> Le build émet un **warning informatif** « Some chunks are larger than 500 kB » (dû à
-> `framer-motion`). Non bloquant. Correctif possible : code-splitting dynamique.
+> ~~Le build émet un **warning** « Some chunks are larger than 500 kB »~~ → **résolu** :
+> `vite.config.ts` segmente les vendors (`manualChunks` : `vendor-pdfjs`, `vendor-motion`,
+> `vendor-dnd`, `vendor`) et relève `chunkSizeWarningLimit` à **1200** (voir §3).
 
 ### Dette / points d'attention
 - `src/App.css` et `src/styles/global.css` : **non importés** (héritage Vite) → supprimables.
@@ -1444,6 +1491,22 @@ sauts de page/centrages vérifiés dans les 3 formats).
 
 ---
 
+## 23. Matrice de conformité et limites connues
+
+Synthèse « source de vérité » : fonctionnalités **validées** vs **limites connues**, par moteur / module.
+
+| Domaine | Statut | Validé (implémenté) | Limite connue |
+|---|---|---|---|
+| **Word (`.docx`)** | ✅ Livré | Styles natifs, aération (titres `oddPage`, `page_break_before`), en-tête courant dynamique, images (EMU pleine largeur utile, ratio conservé), glossaire en exposant + notes, TOC native (`Heading1/2` + `outlineLvl`), colophon | Dé-foliotation des **pages fantômes** non exprimable statiquement en OOXML (§20 Phase 3) |
+| **PDF Typst** | ✅ Livré | Prêt-à-imprimer KDP (gouttière/fond perdu via `kdp.rs`), marges **miroir**, `#outline`, glossaire final unifié, lettrines (`#dropcap`), images, 100 % embarqué (aucun binaire externe) | Foliotation configurable ; polices dépendantes du **repli système/embarqué** |
+| **EPUB 3** | ✅ Livré | Structure **fluide**, parité des sauts de page (`break-before`), notes **fin de chapitre**, `nav` généré, dialogue natif `.epub` | **Non embarqués** : médias image, couverture, lettrine |
+| **Correcteur** | ✅ Livré | LanguageTool (`fr`, `fr-FR/-BE/-CA/-CH`), masquage Markdown **non destructif**, dictionnaires persistants (`app_data_dir`), mode **Pointilleux**, règles humanisées + « Réactiver » | Dépendance au **serveur d'analyse** ; suggestions **non auto-appliquées** |
+| **KDP Print** | ✅ Livré | 7 formats de coupe (`TRIM_PRESETS`), gouttière **dynamique** selon la pagination, marges minimales, fond perdu ; couverture = **PDF séparé** | Formats de coupe **personnalisés** (saisie libre) non pris en charge ; dé-foliotage recto/verso |
+
+> **Légende** : ✅ Livré · ⚠️ Partiel · ❌ Non implémenté.
+
+---
+
 *Fin du document. Il décrit fidèlement l'implémentation du dépôt `DanoeStudioII` à sa dernière
 validation (`tsc` 0 erreur, `vite build` OK, `cargo test` 105/105, `clippy -D warnings` 0 warning,
 `tauri build` OK). Toute évolution doit préserver : la règle « configuration d'export ≠ interface »,
@@ -1517,15 +1580,21 @@ alertes orthographiques visant un toponyme connu et les règles désactivées.
 
 ### 22.1 Interception native (`lib.rs`)
 `WindowEvent::CloseRequested` → `api.prevent_close()` + émission **`app-close-requested`**
-(la fenêtre n'est jamais fermée brutalement). Le bouton « Quitter » et la croix native
-déclenchent la même cinématique (`isClosing = true`, `src/utils/shutdown.ts`).
+(la fenêtre n'est jamais fermée brutalement). L'action permanente **« Quitter l'atelier »**
+(tranche gauche, `LeftPage` → prop `onExitApp` → `handleQuit` dans `App.tsx`) et la croix
+native déclenchent la même cinématique (`isClosing = true`, `src/utils/shutdown.ts`).
+L'écran d'accueil (`WelcomeCover`) ne conserve qu'**une** action : **« Entrer dans l'atelier › »**.
 
 ### 22.2 Animation 3D (`Layout.tsx`)
 - Perspective générale **1400 px** (`[perspective:1400px]`).
-- Volet droit : `transform-origin: left center`, `rotateY(-180deg)`,
-  transition **1000 ms** `cubic-bezier(0.22, 1, 0.36, 1)`.
-- `backface-visibility: hidden` : la **face externe** (couverture cuir/cuivre + logo doré)
-  devient visible au verso.
+- Volet droit : `transform-origin: left center`, `transform-style: preserve-3d`,
+  `rotateY(-180deg)`, transition **1000 ms** `cubic-bezier(0.22, 1, 0.36, 1)`.
+- **Structure double-face** — deux calques superposés, chacun `backface-visibility: hidden` :
+  - **Recto (face interne)** : le livre virtuel (`MenuFlipBook`).
+  - **Verso (couverture externe)** : `absolute inset-0`, `transform: rotateY(180deg)` — fond cuir
+    patiné `bg-[#1c140e]`, bordure laiton (`border-2 border-brass/50 rounded-r-md m-2`), filet
+    intérieur estampé à chaud + **coins renforcés**, **sceau central doré « D »** avec mention
+    discrète « Danoë Studio », ombrage de pliure `shadow-[inset_20px_0_30px_rgba(0,0,0,0.6)]`.
 
 ### 22.3 Effet Glow
 - **Halo d'ambiance** : calque radial `rgba(198, 134, 66, 0.4) → transparent 70 %`,
