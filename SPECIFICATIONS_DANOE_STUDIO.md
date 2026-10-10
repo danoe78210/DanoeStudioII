@@ -31,6 +31,7 @@
 21. [Module Correcteur linguistique (LanguageTool)](#21-module-correcteur-linguistique-languagetool)
 22. [Cinématique 3D de fermeture & effet Glow](#22-cinématique-3d-de-fermeture--effet-glow)
 23. [Matrice de conformité et limites connues](#23-matrice-de-conformité-et-limites-connues)
+24. [Atelier de Couverture (Cover Studio)](#24-atelier-de-couverture-cover-studio)
 
 ---
 
@@ -315,6 +316,7 @@ stries diagonales (`repeating-linear-gradient 45deg`), en `background-attachment
   | Réglages | `reglages` | `bg-copper` | `Settings` |
   | Informations | `infos` | `bg-atelier` | `Info` |
   | Organisation | `organisation` | `bg-verdigris` | `ListTree` |
+  | Couverture | `couverture` | `bg-[#a35829]` | `BookMarked` |
   | Correcteur | `correcteur` | `bg-gold` | `SpellCheck` |
   | Export | `export` | `bg-retro-violet` | `Share2` |
   | **Quitter l'atelier** | *(action)* | `bg-[#1c222e]` | `LogOut` |
@@ -1502,8 +1504,64 @@ Synthèse « source de vérité » : fonctionnalités **validées** vs **limites
 | **EPUB 3** | ✅ Livré | Structure **fluide**, parité des sauts de page (`break-before`), notes **fin de chapitre**, `nav` généré, dialogue natif `.epub` | **Non embarqués** : médias image, couverture, lettrine |
 | **Correcteur** | ✅ Livré | LanguageTool (`fr`, `fr-FR/-BE/-CA/-CH`), masquage Markdown **non destructif**, dictionnaires persistants (`app_data_dir`), mode **Pointilleux**, règles humanisées + « Réactiver » | Dépendance au **serveur d'analyse** ; suggestions **non auto-appliquées** |
 | **KDP Print** | ✅ Livré | 7 formats de coupe (`TRIM_PRESETS`), gouttière **dynamique** selon la pagination, marges minimales, fond perdu ; couverture = **PDF séparé** | Formats de coupe **personnalisés** (saisie libre) non pris en charge ; dé-foliotage recto/verso |
+| **Couverture KDP (Full Wrap)** | ✅ Oui (100 %) | Tests unitaires Rust (`cover`) · Planche PDF 300 DPI conforme KDP Print | Hardcover reporté en v1.2 |
 
 > **Légende** : ✅ Livré · ⚠️ Partiel · ❌ Non implémenté.
+
+---
+
+## 24. Atelier de Couverture (Cover Studio)
+
+Sous-module de génération de la **couverture complète KDP** (« full wrap » : plat 4 | tranche | plat 1).
+Rendu par `CoverStudioView.tsx` (onglet **Couverture**, `activeMenu = 'couverture'`), placé
+**entre Organisation et Correcteur** dans le ruban gauche (§7.3).
+
+### 24.1 Fonctionnalités
+- **Inspection DPI temps réel** : `inspect_cover_images` lit l'**en-tête** des images (sans décoder
+  les pixels) → dimensions, canal alpha (`Rgba8`/`Rgba16`), DPI effectif vs format de coupe ; statut
+  🟢 ≥ 300 · 🟡 250–299 · 🔴 < 250 · 🔵 alpha aplati.
+- **Calcul KDP de tranche** (`calculate_cover_geometry`) : parité des pages (`pages + pages % 2`),
+  coefficients papier **blanc 0,05720 / crème 0,06350 / couleur 0,05960 mm/page**, texte de tranche
+  éligible dès **80 pages**, gabarit `3,2 + coupe + tranche + coupe + 3,2` et réserve code-barres
+  (50,8 × 30,5 mm) au coin inférieur droit du plat 4.
+- **Couleur de tranche** (`extract_spine_color`) : médiane RVB des **10 colonnes** internes de chaque
+  plat ; dégradé recommandé si l'écart euclidien sRGB dépasse **40 points**.
+- **Rendu Typst 300 DPI** (`export_kdp_cover_pdf`) : pré-traitement (aplatissement des images à canal
+  alpha sur blanc `#ffffff` dans `std::env::temp_dir()`), balisage Typst **4 calques** (plat 4, plat 1,
+  tranche vectorielle + texte tourné, réserve code-barres), compilation PDF embarquée.
+- **Table de montage 2D** (`CoverCanvas2D.tsx`) : planche SVG étalée aux proportions calculées, avec
+  repères commutables — fond perdu `3,2 mm` (pointillés rouges), lignes de pliure (bleues), zone de
+  sécurité (verte), réserve code-barres (blanche).
+- **Visualisation orbitale 3D** (`Cover3DPreview.tsx`) : livre fermé **CSS 3D** (`transform-style:
+  preserve-3d`, `perspective`), rotation horizontale (−60°…+60°) et verticale (−15°…+15°) au
+  glisser-déposer, texture/couleur de tranche extraite + texte tourné, ombre portée douce. Bascule
+  `[ Planche 2D ]` / `[ Modèle 3D ]` dans la barre d'outils.
+- **Dialogue de pré-export** (`CoverPreExportModal.tsx`) : contrôles automatiques (DPI, fond perdu,
+  épaisseur de tranche, réserve code-barres, texte de tranche) + validations manuelles de l'auteur,
+  puis boîte de dialogue native d'enregistrement.
+
+### 24.2 Commandes Tauri (`src-tauri/src/cover/`)
+| Commande | Rôle |
+|---|---|
+| `calculate_cover_geometry` | Géométrie complète du gabarit (tranche, dimensions, code-barres) |
+| `inspect_cover_images` | Dimensions / canal alpha / DPI des deux plats |
+| `extract_spine_color` | Couleur unie ou dégradé suggéré pour la tranche |
+| `export_kdp_cover_pdf` | Rendu + écriture du PDF 300 DPI |
+| `pick_cover_image` / `pick_cover_output_path` | Sélecteurs natifs (Tauri v2) |
+
+Modules Rust : `geometry.rs` (moteur géométrique), `inspector.rs` (métadonnées images),
+`color_extractor.rs` (couleur de tranche), `typst_generator.rs` (balisage + compilation).
+Tests unitaires préfixés `cover::` (`cargo test cover`).
+
+### 24.3 Modèle de données (persistance `.danoe`)
+Champ optionnel **`cover?: CoverStudioState`** intégré au fichier projet (JSON v1.0) : `frontPath`,
+`backPath`, `pageCount`, `paperType`, `spineText`, `spineColorFront`, `spineColorBack`, `gradient`,
+`pageCountSnapshot`, `structureSignature`. La géométrie et les rapports d'inspection sont **recalculés
+à la volée** (non persistés).
+
+### 24.4 Détection de dérive (§10)
+Si la **pagination** ou la **signature de structure** diffère du snapshot enregistré lors de la
+validation de la tranche, une bannière d'avertissement propose **[ Recalculer la tranche ]**.
 
 ---
 

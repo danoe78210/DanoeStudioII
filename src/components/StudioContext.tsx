@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import type {
   BookInfoConfig,
+  CoverStudioState,
   ErrorLogConfig,
   ImageColorMode,
   LogDiagnosticLevel,
@@ -61,6 +62,14 @@ export interface StudioContextValue {
   onStructureReorder: (items: StructureItem[]) => void;
   onPickSourcesDirectory: () => void;
   onImportIntoFolder: (id: string) => void;
+
+  // --- Couverture (Cover Studio) ---
+  /** État persistant du module Couverture (autosauvegardé dans `.danoe`). */
+  cover: CoverStudioState;
+  /** Met à jour partiellement l'état de la couverture. */
+  onCoverChange: (patch: Partial<CoverStudioState>) => void;
+  /** Signature de la structure courante (détection de dérive de pagination). */
+  structureSignature: string;
 
   // --- Export ---
   onExport: (format: string) => void;

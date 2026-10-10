@@ -2,6 +2,7 @@
 
 mod commands;
 mod corrector;
+pub mod cover;
 mod epub;
 mod export;
 pub mod kdp;
@@ -425,6 +426,12 @@ pub fn run() {
             commands::read_chapter_file,
             commands::write_chapter_file,
             commands::finalize_exit,
+            cover::calculate_cover_geometry,
+            cover::inspect_cover_images,
+            cover::extract_spine_color,
+            cover::export_kdp_cover_pdf,
+            cover::pick_cover_image,
+            cover::pick_cover_output_path,
             pick_directory,
             list_directory_files,
             import_file_into_folder,

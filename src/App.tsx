@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import './index.css';
 import { Layout } from "./components/Layout";
 import { LeftPage } from "./components/LeftPage";
@@ -6,7 +6,7 @@ import { MenuPage } from "./components/MenuPage";
 import { PreviewFlipbook } from "./components/PreviewFlipbook";
 import { StudioProvider, type StudioContextValue } from "./components/StudioContext";
 import { Toast, type ToastMessage } from "./components/Toast";
-import type { ActiveMenu, BookInfoConfig, ErrorLogConfig, ImageColorMode, LogDiagnosticLevel, LogEntry, LogLevel, ManuscriptLayoutConfig, SourcesConfig, SpecialPageRole, StructureItem } from "./types";
+import type { ActiveMenu, BookInfoConfig, CoverStudioState, ErrorLogConfig, ImageColorMode, LogDiagnosticLevel, LogEntry, LogLevel, ManuscriptLayoutConfig, SourcesConfig, SpecialPageRole, StructureItem } from "./types";
 import { findTrimPreset } from "./data/trimSizes";
 import { INHERIT_FONT, numberFr } from "./data/fonts";
 import { DEFAULT_SPECIAL_ROLE, specialRoleLabel } from "./data/specialPages";
@@ -114,8 +114,29 @@ const DEFAULT_ERROR_LOG: ErrorLogConfig = {
   directory: null,
 };
 
+// État par défaut du module Couverture (Cover Studio).
+const DEFAULT_COVER: CoverStudioState = {
+  frontPath: null,
+  backPath: null,
+  pageCount: 120,
+  paperType: "cream",
+  spineText: "",
+  spineColorFront: null,
+  spineColorBack: null,
+  gradient: false,
+  pageCountSnapshot: 120,
+  structureSignature: "",
+};
+
 // Ordre des pages du livre virtuel de droite (identique à l'ordre du ruban gauche).
-const MENU_ORDER: ActiveMenu[] = ['reglages', 'infos', 'organisation', 'correcteur', 'export'];
+const MENU_ORDER: ActiveMenu[] = [
+  'reglages',
+  'infos',
+  'organisation',
+  'couverture',
+  'correcteur',
+  'export',
+];
 
 // Pages du livre virtuel — identité **stable** (constante module) : leur contenu
 // reste vivant via `StudioContext`, sans ré-initialiser le flipbook.
@@ -163,6 +184,8 @@ const App: React.FC = () => {
   const [structure, setStructure] = useState<StructureItem[]>([]);
   const [chapterFiles, setChapterFiles] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<string[]>([]);
+  // État persistant du module Couverture (synchronisé dans le fichier `.danoe`).
+  const [cover, setCover] = useState<CoverStudioState>(DEFAULT_COVER);
   // Payload figé de l'aperçu interactif (null = fermé) : capturé à l'ouverture
   // pour une identité stable (évite toute re-génération au re-rendu).
   const [previewPayload, setPreviewPayload] = useState<unknown | null>(null);
@@ -177,6 +200,17 @@ const App: React.FC = () => {
   const addLog = useCallback((level: LogLevel, message: string) => {
     setLogs((previous) => [...previous, createLog(level, message)]);
   }, []);
+
+  // Mise à jour partielle de l'état de la couverture (autosauvegardé).
+  const handleCoverChange = useCallback((patch: Partial<CoverStudioState>) => {
+    setCover((previous) => ({ ...previous, ...patch }));
+  }, []);
+
+  // Signature de la structure courante (détection de dérive de pagination — §10).
+  const structureSignature = useMemo(
+    () => structure.map((item) => item.type).join("|"),
+    [structure],
+  );
 
   // Fermeture animée : le volet 3D du livre se rabat, puis la sortie est finalisée.
   const handleQuit = useCallback(() => {
@@ -297,6 +331,9 @@ const App: React.FC = () => {
           setChapterFiles(data.fileCache.chapters);
           setImageFiles(data.fileCache.images);
         }
+        if (data.cover) {
+          setCover((previous) => ({ ...previous, ...data.cover }));
+        }
       }
       setHydrated(true);
     });
@@ -316,6 +353,7 @@ const App: React.FC = () => {
         structure,
         chapterFiles,
         imageFiles,
+        cover,
       }),
     [
       bookInfo,
@@ -325,6 +363,7 @@ const App: React.FC = () => {
       structure,
       chapterFiles,
       imageFiles,
+      cover,
     ],
   );
 
@@ -739,6 +778,9 @@ const App: React.FC = () => {
     },
     onExport: runExport,
     onPreview: handlePreview,
+    cover,
+    onCoverChange: handleCoverChange,
+    structureSignature,
     isExporting: running,
     onQuit: handleQuit,
   };

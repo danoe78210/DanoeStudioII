@@ -4,6 +4,7 @@ import { useStudio } from "./StudioContext";
 import { SettingsNavigator } from "./SettingsNavigator";
 import { InfoView } from "./InfoView";
 import { OrganizationView } from "./OrganizationView";
+import { CoverStudioView } from "./cover/CoverStudioView";
 import { ExportView } from "./ExportView";
 import { CorrectorView } from "./CorrectorView";
 
@@ -61,6 +62,8 @@ export const MenuPage: React.FC<{ menu: ActiveMenu }> = ({ menu }) => {
           onImportSpecialSource={studio.onImportIntoFolder}
         />
       );
+    case "couverture":
+      return <CoverStudioView />;
     case "correcteur":
       return <CorrectorView />;
     case "export":

@@ -1,5 +1,13 @@
 import React from "react";
-import { Settings, Info, ListTree, Share2, SpellCheck, LogOut } from "lucide-react";
+import {
+  Settings,
+  Info,
+  ListTree,
+  BookMarked,
+  Share2,
+  SpellCheck,
+  LogOut,
+} from "lucide-react";
 import type { ActiveMenu } from "../types";
 
 interface LeftPageProps {
@@ -25,6 +33,7 @@ const tabs: TabItem[] = [
   { id: "reglages", label: "Réglages", icon: Settings, color: "bg-copper text-amber-50" },
   { id: "infos", label: "Informations", icon: Info, color: "bg-atelier text-sky-50" },
   { id: "organisation", label: "Organisation", icon: ListTree, color: "bg-verdigris text-emerald-50" },
+  { id: "couverture", label: "Couverture", icon: BookMarked, color: "bg-[#a35829] text-amber-50" },
   { id: "correcteur", label: "Correcteur", icon: SpellCheck, color: "bg-gold text-amber-950" },
   { id: "export", label: "Export", icon: Share2, color: "bg-retro-violet text-violet-50" },
 ];

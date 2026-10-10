@@ -1,5 +1,6 @@
 import type {
   BookInfoConfig,
+  CoverStudioState,
   ErrorLogConfig,
   ManuscriptLayoutConfig,
   ProjectFile,
@@ -137,6 +138,8 @@ export interface ProjectState {
   chapterFiles: string[];
   /** Fichiers images détectés dans le dossier « Mes sources » (cache). */
   imageFiles: string[];
+  /** État persistant du module Couverture (optionnel). */
+  cover?: CoverStudioState;
 }
 
 /** Compile l'arbre de données du fichier de projet. */
@@ -171,6 +174,7 @@ export const buildProjectFile = (state: ProjectState): ProjectFile => ({
     chapters: state.chapterFiles,
     images: state.imageFiles,
   },
+  cover: state.cover,
 });
 
 /**

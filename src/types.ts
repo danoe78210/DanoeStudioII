@@ -1,4 +1,10 @@
-export type ActiveMenu = 'reglages' | 'infos' | 'organisation' | 'correcteur' | 'export';
+export type ActiveMenu =
+  | 'reglages'
+  | 'infos'
+  | 'organisation'
+  | 'couverture'
+  | 'correcteur'
+  | 'export';
 
 export type LogLevel = 'info' | 'success' | 'warning' | 'error';
 
@@ -168,6 +174,42 @@ export interface StructureItem {
   role?: SpecialPageRole;
 }
 
+/** Type de papier KDP de la couverture (détermine l'épaisseur de tranche). */
+export type CoverPaperType = 'white' | 'cream' | 'color';
+
+/**
+ * État persistant du **module Couverture** (Cover Studio).
+ *
+ * Sérialisé dans le fichier projet `.danoe` (champ optionnel `cover`). Seuls les
+ * paramètres d'auteur sont conservés ; la géométrie et les rapports d'inspection
+ * sont recalculés à la volée.
+ */
+export interface CoverStudioState {
+  /** Chemin du plat 1 (couverture avant), ou `null`. */
+  frontPath: string | null;
+  /** Chemin du plat 4 (couverture arrière / dos), ou `null`. */
+  backPath: string | null;
+  /** Pagination saisie (nombre de pages). */
+  pageCount: number;
+  /** Type de papier KDP. */
+  paperType: CoverPaperType;
+  /** Texte de la tranche (« Titre — Auteur »). */
+  spineText: string;
+  /** Couleur de tranche côté plat 1 (`#rrggbb`), ou `null`. */
+  spineColorFront: string | null;
+  /** Couleur de tranche côté plat 4 (`#rrggbb`), ou `null`. */
+  spineColorBack: string | null;
+  /** Dégradé de tranche activé. */
+  gradient: boolean;
+  /**
+   * Snapshot de pagination au moment de la validation de la tranche — sert à la
+   * **détection de dérive** (§10).
+   */
+  pageCountSnapshot: number;
+  /** Signature de structure au moment de la validation de la tranche. */
+  structureSignature: string;
+}
+
 /** Nœud hiérarchique d'un élément de structure (forme sérialisée). */
 export interface StructureNode {
   id: string;
@@ -239,4 +281,6 @@ export interface ProjectFile {
     chapters: string[];
     images: string[];
   };
+  /** État persistant du module Couverture (Cover Studio). */
+  cover?: CoverStudioState;
 }
